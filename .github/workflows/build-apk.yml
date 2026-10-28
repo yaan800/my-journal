@@ -48,6 +48,13 @@ jobs:
       - name: Name the APK
         run: cp app/build/outputs/apk/release/app-release.apk "MyJournal-build-${{ github.run_number }}.apk"
 
+      - name: Keep the database schema (for future migrations)
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas-${{ github.run_number }}
+          path: app/schemas
+          if-no-files-found: ignore
+
       - name: Keep a copy with this run
         uses: actions/upload-artifact@v4
         with:
