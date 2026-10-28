@@ -1,22 +1,39 @@
-# My Journal — Android app (Phase 1: Foundation)
+# My Journal — Android app (Phase 2: Organize)
 
 A calm, Keep-style notes app: quick capture first, organize later.
 Kotlin + Jetpack Compose + Room. Everything is stored on the phone and works offline.
 
-## What Phase 1 does
+## What the app does now
 
-- **Quick thought** — the + button (and the home button) opens a writing sheet with the keyboard up.
-  The thought is saved on the first keystroke, with no title, folder or tag needed.
-  "Open as full note" moves it into the full editor.
-- **Notes and checklists** — a full editor that saves as you type (no Save button).
-  Leaving a note empty removes it, like Keep. Convert text ⇄ checklist with one tap.
-- **Home** — search bar, Quick thought and Checklist buttons, then Pinned and Recent.
-  Switch between list and 2-column grid.
-- **Pin** (up to 10) and **Delete** with Undo. Deleted notes stay in Trash for 30 days.
-- **Search** — titles, text and checklist lines, English and Bangla, offline.
-- **Colours** — calm blue-teal on cool paper; follows the phone's light or dark mode.
+**Phase 1 — Foundation**
+- **Quick thought**: the + button opens a writing sheet with the keyboard up; saved on the first keystroke.
+- **Notes and checklists** that save as you type. Empty notes are removed when you go back.
+- **Pin** and **delete with Undo**; Trash keeps notes 30 days.
 
-Done when: you capture and find notes all day with the phone in airplane mode.
+**Phase 2 — Organize (this update)**
+- **Bottom bar:** Notes · Projects · Tags · More.
+- **Projects** (each with its own soft colour), **nested folders** and **unlimited tags** — all optional.
+  Set them from chips at the bottom of any note, or for many notes at once.
+- **Swipe** a note right to pin, left to archive. **Long-press** to select several, then
+  Pin · Archive · Delete · ⋮ (project, folder, tags, select all).
+- **Archive** and **Trash** screens (restore, delete forever, empty trash).
+- **Search** across titles, text, checklists, tags, projects and folders, with filters you can combine:
+  tags, project, folder, date (today … this month, or a custom range) and pinned. Offline, English and Bangla.
+- **Timeline**: notes by the day you wrote them, with "jump to date".
+- **Settings**: light / dark / system, default list or grid view, pin limit 5 or 10.
+- Ten starter tags (Rumor, AI, Research, Market …) are added on first launch.
+
+Updating from Phase 1 keeps every note: the database upgrade only adds new tables.
+
+## Updating the app on GitHub (when you get a new version)
+
+1. Unzip the new project zip.
+2. In your repository: *Add file → Upload files*, drag in everything inside the `my-journal` folder,
+   and commit. Files with the same name are replaced.
+3. If `.github/workflows/build-apk.yml` changed, open it in the repository, click the pencil, paste the
+   new contents, and commit.
+4. The build starts by itself. When it finishes, install the new APK from *Releases* — it installs over
+   the old version and keeps your notes.
 
 ## Get the APK without Android Studio (GitHub builds it for you)
 

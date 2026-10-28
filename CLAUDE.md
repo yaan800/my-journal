@@ -22,8 +22,8 @@ minSdk 29, targetSdk 35. Dependency wiring is the hand-written `AppContainer` (H
 7. Colours come from `ui/theme`. Keep text contrast at WCAG AA. No gradients, glows or emoji in the UI.
 
 ## Phases (see the build plan doc)
-1. Foundation — DONE in this commit.
-2. Organize — projects, folders (nested), tags, archive, trash screen, swipe right=pin / left=archive,
+1. Foundation — DONE.
+2. Organize — DONE (search uses LIKE across joins instead of FTS5: Bangla-safe and fast enough; revisit if notes reach tens of thousands; date filter uses updatedAt) — projects, folders (nested), tags, archive, trash screen, swipe right=pin / left=archive,
    long-press multi-select, FTS5 search + filters (tag, project, folder, date, pinned), timeline, bottom nav
    Notes · Projects · Tags · More. Settings: theme, default view, pin limit 5/10 (DataStore).
 3. AI — Cloudflare Worker holding the Claude key; AiService with ClaudeProvider + DemoProvider; AI Inbox;
