@@ -9,11 +9,15 @@ import androidx.lifecycle.viewModelScope
 import com.yeasin.myjournal.AppContainer
 import com.yeasin.myjournal.data.db.CaptureType
 import com.yeasin.myjournal.data.db.NoteType
+import com.yeasin.myjournal.data.db.NoteWithItems
 import com.yeasin.myjournal.data.db.items
 import com.yeasin.myjournal.data.repo.ChecklistLine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -86,18 +90,39 @@ class EditorViewModel(private val noteId: String, private val c: AppContainer) :
         scheduleSave()
     }
 
+    /** Project, folder and tags change instantly (no autosave needed); the screen observes them here. */
+    val meta: StateFlow<NoteWithItems?> = repo.observe(noteId).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     fun togglePin() {
         val want = !isPinned
+        val limit = c.settings.value.pinLimit
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { flushNow(); repo.setPinned(noteId, want) }
-            if (ok) isPinned = want else message = "You can pin up to 10 notes."
+            val ok = withContext(Dispatchers.IO) { flushNow(); repo.setPinned(listOf(noteId), want, limit) }
+            if (ok) isPinned = want else message = "You can pin up to $limit notes."
         }
     }
 
+    fun setProject(id: String?) { c.appScope.launch { repo.setProject(listOf(noteId), id) } }
+    fun setFolder(id: String?) { c.appScope.launch { repo.setFolder(listOf(noteId), id) } }
+    fun setTag(tagId: String, on: Boolean) {
+        c.appScope.launch { if (on) repo.addTag(listOf(noteId), tagId) else repo.removeTag(listOf(noteId), tagId) }
+    }
+
+    /** Archive and leave. */
+    fun archive(done: () -> Unit) {
+        saveJob?.cancel()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { flushNow(); repo.archive(listOf(noteId)) }
+            done()
+        }
+    }
+
+    /** Move to Trash and leave; the screen you return to offers Undo. */
     fun delete(done: () -> Unit) {
         saveJob?.cancel()
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { flushNow(); repo.moveToTrash(noteId) }
+            withContext(Dispatchers.IO) { flushNow(); repo.moveToTrash(listOf(noteId)) }
+            c.lastDeleted.value = noteId
             done()
         }
     }

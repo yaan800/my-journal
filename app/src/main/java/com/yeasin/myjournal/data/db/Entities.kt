@@ -4,6 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import androidx.room.Junction
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import java.util.UUID
@@ -78,11 +79,55 @@ data class ChecklistItemEntity(
     val position: Int,
 )
 
-/** A note together with its checklist lines, in order. */
+// ---------- Phase 2: tags, folders, projects ----------
+
+@Entity(tableName = "tags", indices = [Index(value = ["name"], unique = true)])
+data class TagEntity(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
+    tableName = "note_tags",
+    primaryKeys = ["noteId", "tagId"],
+    foreignKeys = [
+        ForeignKey(entity = NoteEntity::class, parentColumns = ["id"], childColumns = ["noteId"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = TagEntity::class, parentColumns = ["id"], childColumns = ["tagId"], onDelete = ForeignKey.CASCADE),
+    ],
+    indices = [Index("noteId"), Index("tagId")],
+)
+data class NoteTagCrossRef(val noteId: String, val tagId: String)
+
+/** Folders can nest one inside another through [parentId]. */
+@Entity(tableName = "folders", indices = [Index("parentId")])
+data class FolderEntity(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val parentId: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+/** [keywords] is comma-separated; Phase 3 uses it to suggest the project for a new note. */
+@Entity(tableName = "projects")
+data class ProjectEntity(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val keywords: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+/** A note together with its checklist lines and its tags. */
 data class NoteWithItems(
     @Embedded val note: NoteEntity,
     @Relation(parentColumn = "id", entityColumn = "noteId")
     val itemsUnsorted: List<ChecklistItemEntity>,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy = Junction(value = NoteTagCrossRef::class, parentColumn = "noteId", entityColumn = "tagId"),
+    )
+    val tags: List<TagEntity> = emptyList(),
 )
 
 /** Checklist lines in the order the user arranged them. Kept outside the class so Room ignores it. */

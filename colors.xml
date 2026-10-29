@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Window background shown before Compose draws: cool paper / deep teal night -->
-    <color name="window_bg">#F2F6F7</color>
-    <color name="ic_bg">#D8ECEE</color>
-    <color name="ic_fg">#227580</color>
-</resources>

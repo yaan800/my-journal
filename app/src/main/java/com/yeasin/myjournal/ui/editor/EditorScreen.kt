@@ -1,7 +1,13 @@
 package com.yeasin.myjournal.ui.editor
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,16 +25,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -39,23 +50,31 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.yeasin.myjournal.data.db.NoteType
+import com.yeasin.myjournal.ui.LocalCatalog
 import com.yeasin.myjournal.ui.appContainer
+import com.yeasin.myjournal.ui.components.FolderPickerSheet
+import com.yeasin.myjournal.ui.components.ProjectPickerSheet
+import com.yeasin.myjournal.ui.components.TagPickerSheet
 import com.yeasin.myjournal.ui.theme.Journal
 import com.yeasin.myjournal.util.TextFormat
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun EditorScreen(noteId: String, onClose: () -> Unit, onDeleted: () -> Unit) {
+fun EditorScreen(noteId: String, onClose: () -> Unit) {
     val container = appContainer()
     val vm: EditorViewModel = viewModel(
         key = "editor-$noteId",
@@ -64,6 +83,9 @@ fun EditorScreen(noteId: String, onClose: () -> Unit, onDeleted: () -> Unit) {
     val c = Journal.colors
     val snackbar = remember { SnackbarHostState() }
     val goBack = { vm.close(onClose) }
+    val meta by vm.meta.collectAsStateWithLifecycle()
+    val catalog = LocalCatalog.current
+    var picker by remember { mutableStateOf<String?>(null) }
 
     BackHandler(onBack = goBack)
     LaunchedEffect(vm.message) {
@@ -88,7 +110,10 @@ fun EditorScreen(noteId: String, onClose: () -> Unit, onDeleted: () -> Unit) {
                             tint = if (vm.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    IconButton(onClick = { vm.delete(onDeleted) }) {
+                    IconButton(onClick = { vm.archive(onClose) }) {
+                        Icon(Icons.Outlined.Archive, contentDescription = "Archive")
+                    }
+                    IconButton(onClick = { vm.delete(onClose) }) {
                         Icon(Icons.Outlined.Delete, contentDescription = "Delete")
                     }
                 },
@@ -183,7 +208,56 @@ fun EditorScreen(noteId: String, onClose: () -> Unit, onDeleted: () -> Unit) {
                     Text("List item")
                 }
             }
+            // Organize: project, folder, tags. All optional.
+            val note = meta?.note
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val project = note?.projectId?.let { catalog.projectById[it] }
+                AssistChip(
+                    onClick = { picker = "project" },
+                    label = { Text(project?.name ?: "No project") },
+                    leadingIcon = {
+                        if (project != null) {
+                            Box(Modifier.size(10.dp).background(c.project(catalog.projectColorSlot(project.id)).second, CircleShape))
+                        } else {
+                            Icon(Icons.Outlined.Layers, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    },
+                )
+                AssistChip(
+                    onClick = { picker = "folder" },
+                    label = { Text(catalog.folderPath(note?.folderId).ifEmpty { "No folder" }) },
+                    leadingIcon = { Icon(Icons.Outlined.Folder, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+                meta?.tags?.sortedBy { it.name.lowercase() }?.forEach { tag ->
+                    InputChip(
+                        selected = false,
+                        onClick = { vm.setTag(tag.id, false) },
+                        label = { Text("#" + tag.name) },
+                        trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = "Remove tag ${tag.name}", modifier = Modifier.size(16.dp)) },
+                    )
+                }
+                AssistChip(
+                    onClick = { picker = "tag" },
+                    label = { Text("Tag") },
+                    leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+            }
             Spacer(Modifier.padding(bottom = 48.dp))
         }
+    }
+
+    when (picker) {
+        "project" -> ProjectPickerSheet("Project", meta?.note?.projectId, onPick = { vm.setProject(it); picker = null }, onDismiss = { picker = null })
+        "folder" -> FolderPickerSheet("Move to folder", meta?.note?.folderId, onPick = { vm.setFolder(it); picker = null }, onDismiss = { picker = null })
+        "tag" -> TagPickerSheet(
+            "Tags",
+            isOn = { tag -> meta?.tags?.any { it.id == tag.id } == true },
+            onToggle = { tag, on -> vm.setTag(tag.id, on) },
+            onDismiss = { picker = null },
+        )
     }
 }

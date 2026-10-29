@@ -7,28 +7,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yeasin.myjournal.AppContainer
 import com.yeasin.myjournal.data.db.NoteType
-import com.yeasin.myjournal.data.db.NoteWithItems
+import com.yeasin.myjournal.data.repo.AppSettings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import java.util.UUID
 
-data class HomeLists(val pinned: List<NoteWithItems>, val recent: List<NoteWithItems>, val loaded: Boolean)
-
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
     private val repo = c.notes
 
-    val lists: StateFlow<HomeLists> = repo.observeActive()
-        .map { all -> HomeLists(all.filter { it.note.isPinned }, all.filterNot { it.note.isPinned }, loaded = true) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeLists(emptyList(), emptyList(), loaded = false))
-
-    var grid by mutableStateOf(false)
+    /** Starts in the view chosen in Settings; the toolbar button switches it for this session. */
+    var grid by mutableStateOf(c.settings.value.defaultView == AppSettings.VIEW_GRID)
         private set
 
     fun toggleGrid() { grid = !grid }
@@ -38,10 +29,6 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
             val id = repo.create(type)
             open(id)
         }
-    }
-
-    fun restore(id: String) {
-        c.appScope.launch { repo.restore(id) }
     }
 
     // ---- Quick capture: the first keystroke saves at once, later ones every 300 ms ----

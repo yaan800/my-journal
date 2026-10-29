@@ -25,14 +25,18 @@ data class JournalColors(
     val kQuick: Color,
     val heroBg: Color,
     val heroText: Color,
+    val selBg: Color,
+    val projects: List<Pair<Color, Color>>,
     val isDark: Boolean,
-)
+) {
+    fun project(slot: Int): Pair<Color, Color> = projects[((slot % projects.size) + projects.size) % projects.size]
+}
 
 private val LightJournal = with(LightTokens) {
-    JournalColors(card, border, sub, chip, chipText, input, fab, fabIcon, kBrain, kQuick, heroBg, heroText, isDark = false)
+    JournalColors(card, border, sub, chip, chipText, input, fab, fabIcon, kBrain, kQuick, heroBg, heroText, selBg, projects, isDark = false)
 }
 private val DarkJournal = with(DarkTokens) {
-    JournalColors(card, border, sub, chip, chipText, input, fab, fabIcon, kBrain, kQuick, heroBg, heroText, isDark = true)
+    JournalColors(card, border, sub, chip, chipText, input, fab, fabIcon, kBrain, kQuick, heroBg, heroText, selBg, projects, isDark = true)
 }
 
 private val LightScheme = with(LightTokens) {
